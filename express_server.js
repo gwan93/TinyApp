@@ -6,6 +6,12 @@ app.set("view engine", "ejs"); // set ejs as the view engine
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
+function generateRandomString() {
+  let randNum = Math.floor((Math.random() * 1000 + 10000));
+  let randString = 'a' + randNum;
+  return randString;
+}
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -40,6 +46,9 @@ app.get("/", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
+  let shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
   res.send("Ok");         // Respond with 'Ok' (we will replace this)
 });
 

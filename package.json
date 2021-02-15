@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/gwan93/tinyapp/issues"
   },
-  "homepage": "https://github.com/gwan93/tinyapp#readme"
+  "homepage": "https://github.com/gwan93/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }

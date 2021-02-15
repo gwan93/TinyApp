@@ -18,6 +18,14 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+app.get("/u/:shortURL", (req, res) => {
+  if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
+    res.send("Invalid Short URL! Please check again.");
+  }
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
+});
+
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });

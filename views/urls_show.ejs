@@ -11,11 +11,11 @@
   <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <h5 class="card-title">TinyURL for: <%= longURL %></h5>
-        <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
+        <h5 class="card-title">TinyURL for: <%= templateVars['longURL'] %></h5>
+        <p class="card-text">Short URL: <a href="/u/<%= templateVars['shortURL'] %>"><%= templateVars['shortURL'] %></a></p>
       </div>
 
-      <form class="inline" action="/urls/<%= shortURL %>" method="POST">
+      <form class="inline" action="/urls/<%= templateVars['shortURL'] %>" method="POST">
         <div>
           <label for="updateLongURL">Update Long URL</label>
           <input type="text" id="updateURL" name="newURL">

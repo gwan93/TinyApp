@@ -22,10 +22,10 @@
         </tr>
       </thead>
       <tbody>
-        <% for(let url in urls) { %>
+        <% for(let url in templateVars['urls']) { %>
           <tr>
             <td><%= url %></td>
-            <td><%= urls[url] %></td>
+            <td><%= templateVars['urls'][url] %></td>
             <td>
               <a class="btn btn-primary" href="/urls/<%=url%>">Edit <%=url%></a>
             </td>

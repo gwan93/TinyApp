@@ -11,17 +11,16 @@
       </div>
     </div>
     <div>
-      <% if(username) {%>
+      <% if(templateVars['userID']) {%>
         <form action="/logout" method="POST" class="form-inline">
-          Logged in as: <%= username %> 
+          Logged in as: <%= templateVars['userID']['email']  %>
           <button class="btn btn-info">Logout</button>
         </form>
-      <% }  else {%>
-      <form action="/login" method="POST" class="form-inline">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" name="username">
-        <button class="btn btn-info">Login</button>
-      </form>
+      <% } else {%>
+        <div class="navbar-nav">
+          <a class="nav-item nav-link" href="/login">Login</a>
+          <a class="nav-item nav-link" href="/register">Register</a>
+        </div>
       <% } %>
     </div>
     

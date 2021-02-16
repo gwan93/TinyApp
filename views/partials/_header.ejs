@@ -12,7 +12,10 @@
     </div>
     <div>
       <% if(username) {%>
-        <%= username %>
+        <form action="/logout" method="POST" class="form-inline">
+          Logged in as: <%= username %> 
+          <button class="btn btn-info">Logout</button>
+        </form>
       <% }  else {%>
       <form action="/login" method="POST" class="form-inline">
         <label for="username" class="form-label">Username</label>
@@ -20,7 +23,7 @@
         <button class="btn btn-info">Login</button>
       </form>
       <% } %>
-
     </div>
+    
   </nav>
 </header>

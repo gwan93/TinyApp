@@ -52,23 +52,25 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+// create a new url
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
   let shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
   console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  res.redirect(`/urls`);         // Respond with 'Ok' (we will replace this)
 });
 
+// delete a url
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
-  console.log(urlDatabase);
   res.redirect("/urls");
 });
 
-app.post("urls/:shortURL/edit", (req, res) => {
-  console.log(req.params);
-  res.send('ok');
+// update a url
+app.post("/urls/:shortURL", (req, res) => {
+  urlDatabase[req.params.shortURL] = req.body['newURL'];
+  res.redirect(`/urls/${req.params.shortURL}`);
 })
 
 

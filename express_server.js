@@ -23,9 +23,9 @@ const sessionConfig = {
 app.use(cookieSession(sessionConfig));
 
 const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
-  df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID" }
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW", visits: [] },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW", visits: [] },
+  df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID", visits: [] }
 };
 
 const users = {
@@ -82,6 +82,19 @@ app.get("/u/:shortURL", (req, res) => {
     res.send("Invalid Short URL! Please check again.");
     return;
   }
+
+  // create new visit object with visit details
+  const v = {
+    user: req.session.user_id.id || 'Unregistered Visitor',
+    time: new Date(Date.now()).toUTCString()
+  }
+
+  urlDatabase[req.params.shortURL]['visits'].push(v);
+  // console.log(urlDatabase[req.params.shortURL]);
+  // const userCookieID = req.session.user_id.id;
+  // if (!urlDatabase[req.params.shortURL]['uniqueVisitors'].includes(userCookieID)) {
+  //   urlDatabase[req.params.shortURL]['uniqueVisitors'].push(userCookieID);
+  // }
   const { longURL } = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });
@@ -93,11 +106,23 @@ app.get("/urls/new", isLoggedIn, (req, res) => {
 
 app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const shortURL = req.params.shortURL;
+  const uniqueVisitors = [];
+  console.log(urlDatabase[req.params.shortURL]);
+  for (let visitor of urlDatabase[req.params.shortURL]['visits']) {
+    if (!uniqueVisitors.includes(visitor['user'])) {
+      uniqueVisitors.push(visitor['user']);
+    }
+  }
+  console.log(uniqueVisitors);
   const templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[req.params.shortURL]['longURL'],
+    visitorCount: urlDatabase[req.params.shortURL]['visits'].length,
+    uniqueVisitors: uniqueVisitors,
+    viewlog: urlDatabase[req.params.shortURL]['visits'],
     userID: req.session.user_id
   };
+  console.log('visits log is\n', templateVars['viewlog'])
   res.render("urls_show", {templateVars, users});
 });
 
@@ -117,7 +142,8 @@ app.post("/urls", isLoggedIn, (req, res) => {
   let shortURL = generateRandomString();
   const newURL = {
     longURL: req.body.longURL,
-    userID: req.session.user_id.id  // set url id to logged in user's id
+    userID: req.session.user_id.id,  // set url id to logged in user's id
+    visits: []
   };
   urlDatabase[shortURL] = newURL;
   res.redirect(`/urls/${shortURL}`);

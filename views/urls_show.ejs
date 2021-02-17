@@ -13,18 +13,48 @@
       <div class="card-body">
         <h5 class="card-title">TinyURL for: <%= templateVars['longURL'] %></h5>
         <p class="card-text">Short URL: <a href="/u/<%= templateVars['shortURL'] %>"><%= templateVars['shortURL'] %></a></p>
+        
+        <form class="inline" action="/urls/<%= templateVars['shortURL'] %>?_method=PUT" method="POST">
+          <div>
+            <label for="updateLongURL">Update Long URL</label>
+            <input type="text" id="updateURL" name="newURL" placeholder="<%= templateVars['longURL'] %>">
+            <button type="submit" class="btn btn-info">Update URL</button>
+          </div>
+        </form>
+
+        
       </div>
-
-      <form class="inline" action="/urls/<%= templateVars['shortURL'] %>?_method=PUT" method="POST">
-        <div>
-          <label for="updateLongURL">Update Long URL</label>
-          <input type="text" id="updateURL" name="newURL" placeholder="<%= templateVars['longURL'] %>">
-          <button type="submit" class="btn btn-info">Update URL</button>
-
-        </div>
-      </form>
-    
     <div class="card-footer text-muted"></div>
+  </div>
+  <div class="card">
+    <div class="card-header"></div>
+    <div class="card-body">
+      <h5 class="card-title">View Details</h5>
+      <p class="card-text">Total Visits: <%= templateVars['visitorCount'] %></p>
+      <p class="card-text">Unique Visitors: 
+        <ul>
+          <% for (let visitor of templateVars['uniqueVisitors']) { %>
+            <li><%= visitor %></li>
+          <% } %>
+        </ul>
+      <h5 class="card-text">View Log: </h5>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">User</th>
+            <th scope="col">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (let view of templateVars['viewlog']) { %>
+            <tr>
+              <th scope="row"><%= view['user'] %></th>
+              <td><%= view['time'] %></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Bootstrap JS -->

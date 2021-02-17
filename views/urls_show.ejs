@@ -15,7 +15,7 @@
         <p class="card-text">Short URL: <a href="/u/<%= templateVars['shortURL'] %>"><%= templateVars['shortURL'] %></a></p>
       </div>
 
-      <form class="inline" action="/urls/<%= templateVars['shortURL'] %>" method="POST">
+      <form class="inline" action="/urls/<%= templateVars['shortURL'] %>?_method=PUT" method="POST">
         <div>
           <label for="updateLongURL">Update Long URL</label>
           <input type="text" id="updateURL" name="newURL" placeholder="<%= templateVars['longURL'] %>">

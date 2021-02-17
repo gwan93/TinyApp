@@ -5,6 +5,9 @@ const { generateRandomString, getUserByEmail, isLoggedIn, urlsForUser } = requir
 app.set("view engine", "ejs"); // set ejs as the view engine
 const bcrypt = require('bcrypt');
 
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -121,13 +124,13 @@ app.post("/urls", isLoggedIn, (req, res) => {
 });
 
 // delete a url
-app.post("/urls/:shortURL/delete", isLoggedIn, isAuthor, (req, res) => {
+app.delete("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
 
 // update a url
-app.post("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
+app.put("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   urlDatabase[req.params.shortURL]['longURL'] = req.body['newURL'];
   res.redirect(`/urls/`);
 });

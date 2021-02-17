@@ -1,20 +1,27 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const { generateRandomString, getUserByEmail, isLoggedIn, urlsForUser } = require('./helpers');
 app.set("view engine", "ejs"); // set ejs as the view engine
 const bcrypt = require('bcrypt');
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+// used cookieParser in the beginning, use cookieSession instead
+// const cookieParser = require('cookie-parser');
+// app.use(cookieParser());
 
-function generateRandomString() {
-  let randNum = Math.floor((Math.random() * 1000 + 10000));
-  let randString = 'a' + randNum;
-  return randString;
+const cookieSession = require('cookie-session');
+const sessionConfig = {
+  name: 'session',
+  secret: 'aSuperSecretSecretForCookies!',
+  cookie: {
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
 }
+app.use(cookieSession(sessionConfig));
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
@@ -40,33 +47,10 @@ const users = {
   }
 }
 
-const isLoggedIn = (req, res, next) => {
-  // Checks if a user is logged in by detecting the existence of a cookie
-  if (req.cookies.user_id) {
-    // console.log('Yup, you are logged in!');
-    next();
-  } else {
-    console.log('You are not logged in. Please log in to view and create URLs.'); 
-    res.redirect('/login');
-  }
-};
-
-const urlsForUser = (loggedInID) => {
-  // For show page. Returns a filtered database.
-  // The user can only see URLs that they are the owner of.
-  const filteredDatabase = {};
-  for (const id in urlDatabase) {
-    if (urlDatabase[id]['userID'] === loggedInID) {
-      filteredDatabase[id] = urlDatabase[id];
-    }
-  }
-  return filteredDatabase;
-};
-
 const isAuthor = (req, res, next) => {
   // Will check request's cookies for the user ID and compares it with user ID
   // for the entry in the database.
-  if (req.cookies.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
+  if (req.session.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
     console.log("You do not have permission to view this page. Please login.");
     res.redirect("/login");
     return;
@@ -75,26 +59,26 @@ const isAuthor = (req, res, next) => {
 };
 
 app.get("/login", (req, res) => {
-  const templateVars = { userID: req.cookies.user_id };
-  console.log("You are now logged in.");
+  const templateVars = { userID: req.session.user_id };
   res.render("urls_login", {templateVars, users});
 })
 
 app.get("/register", (req, res) => {
-  const templateVars = { userID: req.cookies.user_id };
+  const templateVars = { userID: req.session.user_id };
   res.render("urls_register", {templateVars, users});
 });
 
 app.get("/u/:shortURL", (req, res) => {
   if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
     res.send("Invalid Short URL! Please check again.");
+    return;
   }
-  const longURL = urlDatabase[req.params.shortURL];
+  const { longURL } = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });
 
 app.get("/urls/new", isLoggedIn, (req, res) => {
-  const templateVars = { userID: req.cookies.user_id };
+  const templateVars = { userID: req.session.user_id };
   res.render("urls_new", {templateVars, users});
 });
 
@@ -103,19 +87,17 @@ app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const templateVars = { 
     shortURL: shortURL,
     longURL: urlDatabase[req.params.shortURL]['longURL'],
-    userID: req.cookies.user_id
+    userID: req.session.user_id
   };
-
   res.render("urls_show", {templateVars, users});
 });
 
 app.get("/urls", isLoggedIn, (req, res) => {
-  const loggedInID = req.cookies.user_id.id;
-  const filteredDatabase = urlsForUser(loggedInID);
-  // console.log('filtered database is\n', filteredDatabase); 
+  const loggedInID = req.session.user_id.id;
+  const filteredDatabase = urlsForUser(loggedInID, urlDatabase);
   const templateVars = { 
     urls: filteredDatabase,
-    userID: req.cookies.user_id
+    userID: req.session.user_id
   };
   res.render("urls_index", {templateVars, users});
 });
@@ -123,14 +105,14 @@ app.get("/urls", isLoggedIn, (req, res) => {
 
 // create a new url
 app.post("/urls", isLoggedIn, (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  // console.log(req.body);  // Log the POST request body to the console
   let shortURL = generateRandomString();
   const newURL = {
     longURL: req.body.longURL,
-    userID: req.cookies.user_id.id
+    userID: req.session.user_id.id
   };
   urlDatabase[shortURL] = newURL;
-  console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
+  // console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
   res.redirect(`/urls`);         // Respond with 'Ok' (we will replace this)
 });
 
@@ -151,10 +133,11 @@ app.post("/login", (req, res) => {
   // verify user's email and password
   const { email, password } = req.body;
   for (let id in users) {
-    // if (users[id]['email'] === email && users[id]['password'] === password) {
     if (users[id]['email'] === email && bcrypt.compareSync(password, users[id]['hashedPassword'])) {
       const foundUser = users[id];
-      res.cookie("user_id", foundUser);
+      req.session.user_id = foundUser; // cookieSession syntax
+      // res.cookie("user_id", foundUser); // cookieParser syntax
+      console.log("You are now logged in.");
       res.redirect('/urls')
       return; 
     } 
@@ -165,7 +148,8 @@ app.post("/login", (req, res) => {
 
 // user logout
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id")
+  req.session = null; // cookieSession syntax
+  // res.clearCookie("user_id") // cookieParse syntax
   console.log("You are now logged out. Redirecting to Index page.");
   res.redirect('/urls');
 })
@@ -173,16 +157,15 @@ app.post("/logout", (req, res) => {
 // post user registration
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
-  for (let id in users) {
-    if (users[id]['email'] === email) {
-      res.status(400);
-      res.send('A user with that email already exists');
-    } else if (email === "" || password === "") {
-      res.status(400);
-      res.send('Empty email/password is not allowed.');
-    }
+  if (getUserByEmail(email, users)) {
+    res.status(400);
+    res.send('A user with that email already exists');
+    return;
+  } else if (email === "" || password === "") {
+    res.status(400);
+    res.send('Empty email/password is not allowed.');
+    return;
   }
-
   // store data from req into users object. id, email, password. use generate function for id
   const generateNewID = generateRandomString();
   const newUser = {
@@ -193,9 +176,9 @@ app.post("/register", (req, res) => {
   users[generateNewID] = newUser;
   // console.log(users);
   // set a user cookie with the user's newly generated ID
-  res.cookie("user_id", newUser);
-  console.log('users has been updated\n', users);
-  // console.log('cookie set');
+  req.session.user_id = newUser; // cookieSession syntax
+  // res.cookie("user_id", newUser); // cookieParser syntax
+  // console.log('users has been updated\n', users);
   res.redirect("/urls");
 })
 

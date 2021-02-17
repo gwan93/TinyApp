@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs"); // set ejs as the view engine
+const bcrypt = require('bcrypt');
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
@@ -25,20 +26,22 @@ const users = {
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    hashedPassword: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
  "user2RandomID": {
     id: "user2RandomID", 
     email: "user2@example.com", 
-    password: "dishwasher-funk"
+    hashedPassword: bcrypt.hashSync("dishwasher-funk", 10)
   },
   "user3RandomID": {
     id: "user3RandomID", 
     email: "asdf@asdf", 
-    password: "asdf"
+    hashedPassword: bcrypt.hashSync("asdf", 10)
   }
 }
+
 const isLoggedIn = (req, res, next) => {
+  // Checks if a user is logged in by detecting the existence of a cookie
   if (req.cookies.user_id) {
     // console.log('Yup, you are logged in!');
     next();
@@ -49,6 +52,8 @@ const isLoggedIn = (req, res, next) => {
 };
 
 const urlsForUser = (loggedInID) => {
+  // For show page. Returns a filtered database.
+  // The user can only see URLs that they are the owner of.
   const filteredDatabase = {};
   for (const id in urlDatabase) {
     if (urlDatabase[id]['userID'] === loggedInID) {
@@ -58,18 +63,9 @@ const urlsForUser = (loggedInID) => {
   return filteredDatabase;
 };
 
-// const isAuthor = (shortURL, loggedInID) => {
-//   if (urlDatabase[shortURL]['userID'] !== loggedInID) {
-//     console.log("You do not have permission to view this page. Please login.");
-//     res.redirect("/login");
-//     return false;
-//   }
-//   return true;
-// };
-
 const isAuthor = (req, res, next) => {
-  console.log('req params shorturl', urlDatabase[req.params.shortURL]['userID']);
-  console.log('cookies', req.cookies.user_id.id);
+  // Will check request's cookies for the user ID and compares it with user ID
+  // for the entry in the database.
   if (req.cookies.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
     console.log("You do not have permission to view this page. Please login.");
     res.redirect("/login");
@@ -155,7 +151,8 @@ app.post("/login", (req, res) => {
   // verify user's email and password
   const { email, password } = req.body;
   for (let id in users) {
-    if (users[id]['email'] === email && users[id]['password'] === password) {
+    // if (users[id]['email'] === email && users[id]['password'] === password) {
+    if (users[id]['email'] === email && bcrypt.compareSync(password, users[id]['hashedPassword'])) {
       const foundUser = users[id];
       res.cookie("user_id", foundUser);
       res.redirect('/urls')
@@ -191,7 +188,7 @@ app.post("/register", (req, res) => {
   const newUser = {
     id: generateNewID,
     email: email,
-    password, password
+    hashedPassword: bcrypt.hashSync(password,10)
   }
   users[generateNewID] = newUser;
   // console.log(users);

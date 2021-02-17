@@ -2,7 +2,7 @@ const generateRandomString = function() {
   let randNum = Math.floor((Math.random() * 1000 + 10000));
   let randString = 'a' + randNum;
   return randString;
-}
+};
 
 const getUserByEmail = function(email, database) {
   for (let user in database) {
@@ -17,7 +17,7 @@ const isLoggedIn = (req, res, next) => {
   if (req.session.user_id) {
     next();
   } else {
-    console.log('You are not logged in. Please log in to view and create URLs.'); 
+    console.log('You are not logged in. Please log in to view and create URLs.');
     res.redirect('/login');
   }
 };
@@ -39,4 +39,4 @@ module.exports = {
   getUserByEmail,
   isLoggedIn,
   urlsForUser
-}
+};

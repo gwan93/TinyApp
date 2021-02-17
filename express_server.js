@@ -8,19 +8,15 @@ const bcrypt = require('bcrypt');
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
-// used cookieParser in the beginning, use cookieSession instead
-// const cookieParser = require('cookie-parser');
-// app.use(cookieParser());
-
-const cookieSession = require('cookie-session');
+const cookieSession = require("cookie-session");
 const sessionConfig = {
-  name: 'session',
-  secret: 'aSuperSecretSecretForCookies!',
+  name: "session",
+  secret: "aSuperSecretSecretForCookies!",
   cookie: {
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
     maxAge: 1000 * 60 * 60 * 24 * 7
   }
-}
+};
 app.use(cookieSession(sessionConfig));
 
 const urlDatabase = {
@@ -29,28 +25,32 @@ const urlDatabase = {
   df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID" }
 };
 
-const users = { 
+const users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     hashedPassword: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
     hashedPassword: bcrypt.hashSync("dishwasher-funk", 10)
   },
   "user3RandomID": {
-    id: "user3RandomID", 
-    email: "asdf@asdf", 
+    id: "user3RandomID",
+    email: "asdf@asdf",
     hashedPassword: bcrypt.hashSync("asdf", 10)
   }
-}
+};
 
 const isAuthor = (req, res, next) => {
   // Will check request's cookies for the user ID and compares it with user ID
   // for the entry in the database.
-  if (req.session.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
+
+  if (!urlDatabase[req.params.shortURL]) {
+    res.send("That page does not exist. Please try again.");
+    return;
+  } else if (req.session.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
     console.log("You do not have permission to view this page. Please login.");
     res.redirect("/login");
     return;
@@ -59,11 +59,17 @@ const isAuthor = (req, res, next) => {
 };
 
 app.get("/login", (req, res) => {
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  }
   const templateVars = { userID: req.session.user_id };
   res.render("urls_login", {templateVars, users});
-})
+});
 
 app.get("/register", (req, res) => {
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  }
   const templateVars = { userID: req.session.user_id };
   res.render("urls_register", {templateVars, users});
 });
@@ -84,7 +90,7 @@ app.get("/urls/new", isLoggedIn, (req, res) => {
 
 app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const shortURL = req.params.shortURL;
-  const templateVars = { 
+  const templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[req.params.shortURL]['longURL'],
     userID: req.session.user_id
@@ -95,7 +101,7 @@ app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
 app.get("/urls", isLoggedIn, (req, res) => {
   const loggedInID = req.session.user_id.id;
   const filteredDatabase = urlsForUser(loggedInID, urlDatabase);
-  const templateVars = { 
+  const templateVars = {
     urls: filteredDatabase,
     userID: req.session.user_id
   };
@@ -105,15 +111,13 @@ app.get("/urls", isLoggedIn, (req, res) => {
 
 // create a new url
 app.post("/urls", isLoggedIn, (req, res) => {
-  // console.log(req.body);  // Log the POST request body to the console
   let shortURL = generateRandomString();
   const newURL = {
     longURL: req.body.longURL,
-    userID: req.session.user_id.id
+    userID: req.session.user_id.id  // set url id to logged in user's id
   };
   urlDatabase[shortURL] = newURL;
-  // console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
-  res.redirect(`/urls`);         // Respond with 'Ok' (we will replace this)
+  res.redirect(`/urls/${shortURL}`);
 });
 
 // delete a url
@@ -125,8 +129,8 @@ app.post("/urls/:shortURL/delete", isLoggedIn, isAuthor, (req, res) => {
 // update a url
 app.post("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   urlDatabase[req.params.shortURL]['longURL'] = req.body['newURL'];
-  res.redirect(`/urls/${req.params.shortURL}`);
-})
+  res.redirect(`/urls/`);
+});
 
 // user login
 app.post("/login", (req, res) => {
@@ -135,24 +139,22 @@ app.post("/login", (req, res) => {
   for (let id in users) {
     if (users[id]['email'] === email && bcrypt.compareSync(password, users[id]['hashedPassword'])) {
       const foundUser = users[id];
-      req.session.user_id = foundUser; // cookieSession syntax
-      // res.cookie("user_id", foundUser); // cookieParser syntax
+      req.session.user_id = foundUser;
       console.log("You are now logged in.");
-      res.redirect('/urls')
-      return; 
-    } 
+      res.redirect('/urls');
+      return;
+    }
   }
   res.status(403);
   res.send('Invalid email or password. Please try again.');
-})
+});
 
 // user logout
 app.post("/logout", (req, res) => {
-  req.session = null; // cookieSession syntax
-  // res.clearCookie("user_id") // cookieParse syntax
+  req.session = null; // deletes the user's cookie upon logout
   console.log("You are now logged out. Redirecting to Index page.");
   res.redirect('/urls');
-})
+});
 
 // post user registration
 app.post("/register", (req, res) => {
@@ -172,15 +174,11 @@ app.post("/register", (req, res) => {
     id: generateNewID,
     email: email,
     hashedPassword: bcrypt.hashSync(password,10)
-  }
+  };
   users[generateNewID] = newUser;
-  // console.log(users);
-  // set a user cookie with the user's newly generated ID
-  req.session.user_id = newUser; // cookieSession syntax
-  // res.cookie("user_id", newUser); // cookieParser syntax
-  // console.log('users has been updated\n', users);
+  req.session.user_id = newUser; // sets a new cookie
   res.redirect("/urls");
-})
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);

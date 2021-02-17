@@ -18,7 +18,7 @@
       <form class="inline" action="/urls/<%= templateVars['shortURL'] %>" method="POST">
         <div>
           <label for="updateLongURL">Update Long URL</label>
-          <input type="text" id="updateURL" name="newURL">
+          <input type="text" id="updateURL" name="newURL" placeholder="<%= templateVars['longURL'] %>">
           <button type="submit" class="btn btn-info">Update URL</button>
 
         </div>

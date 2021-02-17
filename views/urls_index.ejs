@@ -25,7 +25,7 @@
         <% for(let url in templateVars['urls']) { %>
           <tr>
             <td><%= url %></td>
-            <td><%= templateVars['urls'][url] %></td>
+            <td><%= templateVars['urls'][url]['longURL'] %></td>
             <td>
               <a class="btn btn-primary" href="/urls/<%=url%>">Edit <%=url%></a>
             </td>

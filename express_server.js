@@ -16,8 +16,9 @@ function generateRandomString() {
 }
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
+  df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID" }
 };
 
 const users = { 
@@ -37,9 +38,49 @@ const users = {
     password: "asdf"
   }
 }
+const isLoggedIn = (req, res, next) => {
+  if (req.cookies.user_id) {
+    // console.log('Yup, you are logged in!');
+    next();
+  } else {
+    console.log('You are not logged in. Please log in to view and create URLs.'); 
+    res.redirect('/login');
+  }
+};
+
+const urlsForUser = (loggedInID) => {
+  const filteredDatabase = {};
+  for (const id in urlDatabase) {
+    if (urlDatabase[id]['userID'] === loggedInID) {
+      filteredDatabase[id] = urlDatabase[id];
+    }
+  }
+  return filteredDatabase;
+};
+
+// const isAuthor = (shortURL, loggedInID) => {
+//   if (urlDatabase[shortURL]['userID'] !== loggedInID) {
+//     console.log("You do not have permission to view this page. Please login.");
+//     res.redirect("/login");
+//     return false;
+//   }
+//   return true;
+// };
+
+const isAuthor = (req, res, next) => {
+  console.log('req params shorturl', urlDatabase[req.params.shortURL]['userID']);
+  console.log('cookies', req.cookies.user_id.id);
+  if (req.cookies.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
+    console.log("You do not have permission to view this page. Please login.");
+    res.redirect("/login");
+    return;
+  }
+  next();
+};
 
 app.get("/login", (req, res) => {
   const templateVars = { userID: req.cookies.user_id };
+  console.log("You are now logged in.");
   res.render("urls_login", {templateVars, users});
 })
 
@@ -56,60 +97,56 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-app.get("/urls/new", (req, res) => {
+app.get("/urls/new", isLoggedIn, (req, res) => {
   const templateVars = { userID: req.cookies.user_id };
   res.render("urls_new", {templateVars, users});
 });
 
-app.get("/urls/:shortURL", (req, res) => {
+app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
+  const shortURL = req.params.shortURL;
   const templateVars = { 
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
+    shortURL: shortURL,
+    longURL: urlDatabase[req.params.shortURL]['longURL'],
     userID: req.cookies.user_id
   };
+
   res.render("urls_show", {templateVars, users});
 });
 
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-app.get("/urls", (req, res) => {
+app.get("/urls", isLoggedIn, (req, res) => {
+  const loggedInID = req.cookies.user_id.id;
+  const filteredDatabase = urlsForUser(loggedInID);
+  // console.log('filtered database is\n', filteredDatabase); 
   const templateVars = { 
-    urls: urlDatabase,
+    urls: filteredDatabase,
     userID: req.cookies.user_id
   };
-  // console.log('get /urls, templatevarsuseridemail is', templateVars['userID']['email']);
-  // console.log('get /urls, tempaltevars is', templateVars)
   res.render("urls_index", {templateVars, users});
 });
 
-// app.get("/hello", (req, res) => {
-//   res.send("<html><body>Hello <b>World</b></body></html>\n");
-// });
-
-// app.get("/", (req, res) => {
-//   res.send("Hello!");
-// });
 
 // create a new url
-app.post("/urls", (req, res) => {
+app.post("/urls", isLoggedIn, (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
   let shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
+  const newURL = {
+    longURL: req.body.longURL,
+    userID: req.cookies.user_id.id
+  };
+  urlDatabase[shortURL] = newURL;
   console.log('the urlDatabase has been updated to now be: \n', urlDatabase);
   res.redirect(`/urls`);         // Respond with 'Ok' (we will replace this)
 });
 
 // delete a url
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.post("/urls/:shortURL/delete", isLoggedIn, isAuthor, (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
 
 // update a url
-app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body['newURL'];
+app.post("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
+  urlDatabase[req.params.shortURL]['longURL'] = req.body['newURL'];
   res.redirect(`/urls/${req.params.shortURL}`);
 })
 
@@ -122,6 +159,7 @@ app.post("/login", (req, res) => {
       const foundUser = users[id];
       res.cookie("user_id", foundUser);
       res.redirect('/urls')
+      return; 
     } 
   }
   res.status(403);
@@ -131,6 +169,7 @@ app.post("/login", (req, res) => {
 // user logout
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id")
+  console.log("You are now logged out. Redirecting to Index page.");
   res.redirect('/urls');
 })
 

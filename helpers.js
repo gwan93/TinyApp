@@ -17,7 +17,7 @@ const isLoggedIn = (req, res, next) => {
   if (req.session.user_id) {
     next();
   } else {
-    console.log('You are not logged in. Please log in to view and create URLs.');
+    req.flash('error', 'Please log in to view and create URLs.');
     res.redirect('/login');
   }
 };

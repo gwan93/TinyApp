@@ -84,17 +84,21 @@ app.get("/u/:shortURL", (req, res) => {
   }
 
   // create new visit object with visit details
-  const v = {
-    user: req.session.user_id.id || 'Unregistered Visitor',
-    time: new Date(Date.now()).toUTCString()
+  if (req.session.hasOwnProperty("user_id")) {
+    const v = {
+      user: req.session.user_id.id || 'Unregistered Visitor',
+      time: new Date(Date.now()).toUTCString()
+      }
+    urlDatabase[req.params.shortURL]['visits'].push(v);
+    
+  } else {
+    const v = {
+      user: 'Unregistered Visitor',
+      time: new Date(Date.now()).toUTCString()
+    }
+    urlDatabase[req.params.shortURL]['visits'].push(v);
   }
 
-  urlDatabase[req.params.shortURL]['visits'].push(v);
-  // console.log(urlDatabase[req.params.shortURL]);
-  // const userCookieID = req.session.user_id.id;
-  // if (!urlDatabase[req.params.shortURL]['uniqueVisitors'].includes(userCookieID)) {
-  //   urlDatabase[req.params.shortURL]['uniqueVisitors'].push(userCookieID);
-  // }
   const { longURL } = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });

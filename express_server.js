@@ -15,12 +15,17 @@ const cookieSession = require("cookie-session");
 const sessionConfig = {
   name: "session",
   secret: "aSuperSecretSecretForCookies!",
-  cookie: {
-    expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-    maxAge: 1000 * 60 * 60 * 24 * 7
-  }
 };
 app.use(cookieSession(sessionConfig));
+const flash = require('connect-flash');
+app.use(flash());
+
+// middleware for flash popups 
+app.use((req, res, next) => {
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  next();
+})
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW", visits: [] },
@@ -51,11 +56,12 @@ const isAuthor = (req, res, next) => {
   // for the entry in the database.
 
   if (!urlDatabase[req.params.shortURL]) {
-    res.send("That page does not exist. Please try again.");
+    req.flash('error', 'That page does not exist. Please try again.');
+    res.redirect('/urls');
     return;
   } else if (req.session.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
-    console.log("You do not have permission to view this page. Please login.");
-    res.redirect("/login");
+    req.flash('error', 'You do not have permission to view that page.');
+    res.redirect("/urls");
     return;
   }
   next();
@@ -63,14 +69,16 @@ const isAuthor = (req, res, next) => {
 
 app.get("/login", (req, res) => {
   if (req.session.user_id) {
+    req.flash('success', 'You are already logged in.');
     res.redirect('/urls');
   }
   const templateVars = { userID: req.session.user_id };
-  res.render("urls_login", {templateVars, users});
+  res.render("urls_login", {templateVars, users });
 });
 
 app.get("/register", (req, res) => {
   if (req.session.user_id) {
+    req.flash('success', 'You are already logged in.');
     res.redirect('/urls');
   }
   const templateVars = { userID: req.session.user_id };
@@ -79,7 +87,7 @@ app.get("/register", (req, res) => {
 
 app.get("/u/:shortURL", (req, res) => {
   if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
-    res.send("Invalid Short URL! Please check again.");
+    res.redirect('/urls');
     return;
   }
 
@@ -111,13 +119,11 @@ app.get("/urls/new", isLoggedIn, (req, res) => {
 app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const shortURL = req.params.shortURL;
   const uniqueVisitors = [];
-  console.log(urlDatabase[req.params.shortURL]);
   for (let visitor of urlDatabase[req.params.shortURL]['visits']) {
     if (!uniqueVisitors.includes(visitor['user'])) {
       uniqueVisitors.push(visitor['user']);
     }
   }
-  console.log(uniqueVisitors);
   const templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[req.params.shortURL]['longURL'],
@@ -126,7 +132,6 @@ app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
     viewlog: urlDatabase[req.params.shortURL]['visits'],
     userID: req.session.user_id
   };
-  console.log('visits log is\n', templateVars['viewlog'])
   res.render("urls_show", {templateVars, users});
 });
 
@@ -137,7 +142,7 @@ app.get("/urls", isLoggedIn, (req, res) => {
     urls: filteredDatabase,
     userID: req.session.user_id
   };
-  res.render("urls_index", {templateVars, users});
+  res.render("urls_index", {templateVars, users });
 });
 
 
@@ -150,18 +155,21 @@ app.post("/urls", isLoggedIn, (req, res) => {
     visits: []
   };
   urlDatabase[shortURL] = newURL;
+  req.flash('success', 'Successfully created.');
   res.redirect(`/urls/${shortURL}`);
 });
 
 // delete a url
 app.delete("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   delete urlDatabase[req.params.shortURL];
+  req.flash('success', 'Successfully deleted URL.');
   res.redirect("/urls");
 });
 
 // update a url
 app.put("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   urlDatabase[req.params.shortURL]['longURL'] = req.body['newURL'];
+  req.flash('success', 'Successfully updated URL.');
   res.redirect(`/urls/`);
 });
 
@@ -173,19 +181,19 @@ app.post("/login", (req, res) => {
     if (users[id]['email'] === email && bcrypt.compareSync(password, users[id]['hashedPassword'])) {
       const foundUser = users[id];
       req.session.user_id = foundUser;
-      console.log("You are now logged in.");
+      req.flash('success', 'Successfully logged in. Welcome!');
       res.redirect('/urls');
       return;
     }
   }
   res.status(403);
-  res.send('Invalid email or password. Please try again.');
+  req.flash('error', 'Invalid email or password. Please try again.');
+  res.redirect('/login');
 });
 
 // user logout
 app.post("/logout", (req, res) => {
   req.session = null; // deletes the user's cookie upon logout
-  console.log("You are now logged out. Redirecting to Index page.");
   res.redirect('/urls');
 });
 
@@ -194,11 +202,13 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body;
   if (getUserByEmail(email, users)) {
     res.status(400);
-    res.send('A user with that email already exists');
+    req.flash('error', 'A user with that email already exists.');
+    res.redirect('/register');
     return;
   } else if (email === "" || password === "") {
     res.status(400);
-    res.send('Empty email/password is not allowed.');
+    req.flash('error', 'Empty email/password is not allowed.');
+    res.redirect('/register');
     return;
   }
   // store data from req into users object. id, email, password. use generate function for id
@@ -210,6 +220,7 @@ app.post("/register", (req, res) => {
   };
   users[generateNewID] = newUser;
   req.session.user_id = newUser; // sets a new cookie
+  req.flash('success', 'Welcome! You may now create new URLs.');
   res.redirect("/urls");
 });
 

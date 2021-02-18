@@ -20,12 +20,12 @@ app.use(cookieSession(sessionConfig));
 const flash = require('connect-flash');
 app.use(flash());
 
-// middleware for flash popups 
+// middleware for flash popups
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
   next();
-})
+});
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW", visits: [] },
@@ -96,14 +96,14 @@ app.get("/u/:shortURL", (req, res) => {
     const v = {
       user: req.session.user_id.id || 'Unregistered Visitor',
       time: new Date(Date.now()).toUTCString()
-      }
+    };
     urlDatabase[req.params.shortURL]['visits'].push(v);
     
   } else {
     const v = {
       user: 'Unregistered Visitor',
       time: new Date(Date.now()).toUTCString()
-    }
+    };
     urlDatabase[req.params.shortURL]['visits'].push(v);
   }
 

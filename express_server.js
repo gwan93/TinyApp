@@ -117,7 +117,7 @@ app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const shortURL = req.params.shortURL;
   // for analytics function
   const uniqueVisitors = [];
-  for (let visitor of urlDatabase[req.params.shortURL]['visits']) {
+  for (const visitor of urlDatabase[req.params.shortURL]['visits']) {
     if (!uniqueVisitors.includes(visitor['user'])) {
       uniqueVisitors.push(visitor['user']);
     }
@@ -154,7 +154,7 @@ app.get("/", (req, res) => {
 
 // create a new url
 app.post("/urls", isLoggedIn, (req, res) => {
-  let shortURL = generateRandomString();
+  const shortURL = generateRandomString();
   const newURL = {
     longURL: req.body.longURL,
     userID: req.session.user_id.id,  // set url id to logged in user's id
@@ -183,7 +183,7 @@ app.put("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
 app.post("/login", (req, res) => {
   // verify user's email and password
   const { email, password } = req.body;
-  for (let id in users) {
+  for (const id in users) {
     if (users[id]['email'] === email && bcrypt.compareSync(password, users[id]['hashedPassword'])) {
       const foundUser = users[id];
       req.session.user_id = foundUser;

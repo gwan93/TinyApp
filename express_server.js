@@ -57,12 +57,10 @@ const isAuthor = (req, res, next) => {
 
   if (!urlDatabase[req.params.shortURL]) {
     req.flash('error', 'That page does not exist. Please try again.');
-    res.redirect('/urls');
-    return;
+    return res.redirect('/urls');
   } else if (req.session.user_id.id !== urlDatabase[req.params.shortURL]['userID']) {
     req.flash('error', 'You do not have permission to view that page.');
-    res.redirect("/urls");
-    return;
+    return res.redirect("/urls");
   }
   next();
 };
@@ -87,8 +85,7 @@ app.get("/register", (req, res) => {
 
 app.get("/u/:shortURL", (req, res) => {
   if (!Object.keys(urlDatabase).includes(req.params.shortURL)) {
-    res.redirect('/urls');
-    return;
+    return res.redirect('/urls');
   }
 
   // create new visit object with visit details
@@ -118,6 +115,7 @@ app.get("/urls/new", isLoggedIn, (req, res) => {
 
 app.get("/urls/:shortURL", isLoggedIn, isAuthor, (req, res) => {
   const shortURL = req.params.shortURL;
+  // for analytics function
   const uniqueVisitors = [];
   for (let visitor of urlDatabase[req.params.shortURL]['visits']) {
     if (!uniqueVisitors.includes(visitor['user'])) {
@@ -144,6 +142,14 @@ app.get("/urls", isLoggedIn, (req, res) => {
   };
   res.render("urls_index", {templateVars, users });
 });
+
+app.get("/", (req, res) => {
+  const templateVars = { userID: req.session.user_id };
+  if (req.session.user_id) {
+    return res.redirect("/urls");
+  }
+  res.render("urls_welcome", {templateVars, users})
+})
 
 
 // create a new url
@@ -182,8 +188,7 @@ app.post("/login", (req, res) => {
       const foundUser = users[id];
       req.session.user_id = foundUser;
       req.flash('success', 'Successfully logged in. Welcome!');
-      res.redirect('/urls');
-      return;
+      return res.redirect('/urls');
     }
   }
   res.status(403);
@@ -203,13 +208,11 @@ app.post("/register", (req, res) => {
   if (getUserByEmail(email, users)) {
     res.status(400);
     req.flash('error', 'A user with that email already exists.');
-    res.redirect('/register');
-    return;
+    return res.redirect('/register');
   } else if (email === "" || password === "") {
     res.status(400);
     req.flash('error', 'Empty email/password is not allowed.');
-    res.redirect('/register');
-    return;
+    return res.redirect('/register');
   }
   // store data from req into users object. id, email, password. use generate function for id
   const generateNewID = generateRandomString();

@@ -30,7 +30,9 @@ app.use((req, res, next) => {
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW", visits: [] },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW", visits: [] },
-  df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID", visits: [] }
+  df39da: { longURL: "https://www.amazon.ca", userID: "user3RandomID", visits: [] },
+  fk87ae: { longURL: "https://www.amazon.ca", userID: "TinyAppVisitor", visits: [] },
+  hl2F7h: { longURL: "https://www.apple.com/ca/", userID: "TinyAppVisitor", visits: [] }
 };
 
 const users = {
@@ -48,6 +50,11 @@ const users = {
     id: "user3RandomID",
     email: "asdf@asdf",
     hashedPassword: bcrypt.hashSync("asdf", 10)
+  },
+  "TinyAppVisitor": {
+    id: "TinyAppVisitor",
+    email: "Visitor@TinyApp.com",
+    hashedPassword: bcrypt.hashSync("visitor", 10)
   }
 };
 

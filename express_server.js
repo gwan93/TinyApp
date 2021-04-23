@@ -1,6 +1,8 @@
+require('dotenv').config()
 const express = require("express");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = process.env.PORT || 8080; // default port 8080
+console.log('port is', PORT)
 const { generateRandomString, getUserByEmail, isLoggedIn, urlsForUser } = require('./helpers');
 app.set("view engine", "ejs"); // set ejs as the view engine
 const bcrypt = require('bcrypt');
